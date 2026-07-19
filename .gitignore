@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+*.sqlite
+*.sqlite3
+test_*.py
+test_scale.py
+test_app.py
+.DS_Store
