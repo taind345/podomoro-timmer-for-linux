@@ -71,7 +71,7 @@ def get_daily_totals_for_month(year, month):
     cursor = conn.cursor()
     month_str = f"{year:04d}-{month:02d}"
     cursor.execute('''
-        SELECT date(timestamp, 'localtime') as d, SUM(duration)
+        SELECT date(timestamp) as d, SUM(duration)
         FROM sessions
         WHERE timestamp LIKE ?
         GROUP BY d
@@ -91,7 +91,7 @@ def get_current_streak(daily_goal):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT date(timestamp, 'localtime') as d, SUM(duration)
+        SELECT date(timestamp) as d, SUM(duration)
         FROM sessions
         GROUP BY d
         ORDER BY d DESC

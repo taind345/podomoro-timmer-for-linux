@@ -1,5 +1,6 @@
 import sys
 import gi
+import subprocess
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 gi.require_version('PangoCairo', '1.0')
@@ -25,6 +26,7 @@ class ScalableTimer(Gtk.DrawingArea):
         # Scale to fit width and height. 
         scale = min(width / 3.0, height / 1.2)
         if scale < 10: scale = 10
+        elif scale > 150: scale = 150
         
         desc.set_absolute_size(int(scale * Pango.SCALE))
         layout.set_font_description(desc)
@@ -264,6 +266,7 @@ class PomodoroWindow(Adw.ApplicationWindow):
         self.cal_grid.set_column_spacing(6)
         self.cal_grid.set_row_spacing(6)
         self.cal_grid.set_halign(Gtk.Align.CENTER)
+        self.cal_grid.set_valign(Gtk.Align.START)
         self.cal_vbox.append(self.cal_grid)
 
         # Initialize current month/year
@@ -302,7 +305,7 @@ class PomodoroWindow(Adw.ApplicationWindow):
                 
                 # Cell Box
                 cell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-                cell.set_size_request(45, 45)
+                cell.set_size_request(85, 85)
                 
                 # Add a border
                 frame = Gtk.Frame()
@@ -425,22 +428,24 @@ class PomodoroWindow(Adw.ApplicationWindow):
             self.timer_id = None
             
         self.session_queue = []
-        work_chunk = 30
         break_chunk = 5
         
-        if total_work_mins <= 25:
-            self.session_queue.append(("Work", total_work_mins * 60))
+        if total_work_mins < 30:
+            num_sessions = 1
         else:
-            full_blocks = total_work_mins // work_chunk
-            remainder = total_work_mins % work_chunk
+            num_sessions = int(total_work_mins / 30.0 + 0.5)
             
-            for i in range(full_blocks):
-                self.session_queue.append(("Work", work_chunk * 60))
-                if i < full_blocks - 1 or remainder > 0:
-                    self.session_queue.append(("Break", break_chunk * 60))
-                    
-            if remainder > 0:
-                self.session_queue.append(("Work", remainder * 60))
+        session_duration = total_work_mins // num_sessions
+        remainder = total_work_mins % num_sessions
+        
+        for i in range(num_sessions):
+            curr_duration = session_duration
+            if i == num_sessions - 1:
+                curr_duration += remainder
+                
+            self.session_queue.append(("Work", curr_duration * 60))
+            if i < num_sessions - 1:
+                self.session_queue.append(("Break", break_chunk * 60))
                     
         self.total_blocks = sum(1 for q in self.session_queue if q[0] == "Work")
         self.current_block = 0
@@ -482,6 +487,11 @@ class PomodoroWindow(Adw.ApplicationWindow):
         self.time_label.set_label(self.format_time(self.time_left))
         
         if self.time_left <= 0:
+            try:
+                subprocess.Popen(['paplay', '/usr/share/sounds/freedesktop/stereo/complete.oga'])
+            except Exception as e:
+                print(f"Error playing sound: {e}")
+
             if self.is_working:
                 duration_mins = self.current_chunk_duration // 60
                 database.add_session(duration_mins)
