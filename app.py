@@ -7,7 +7,7 @@ gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, Adw, GLib, Pango, Gio, PangoCairo
 import database
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class ScalableTimer(Gtk.DrawingArea):
     def __init__(self, **kwargs):
@@ -58,6 +58,12 @@ class PomodoroWindow(Adw.ApplicationWindow):
         self.timer_id = None
         self.is_working = True
         self.DAILY_GOAL = 180 # minutes
+        self.is_zen_mode = False
+        self.zen_time_elapsed = 0
+        self.is_accumulate_mode = False
+        self.zen_accumulated_seconds = 0
+        self.session_start_time = None
+        self.zen_start_time = None
         
         database.init_db()
 
@@ -98,24 +104,49 @@ class PomodoroWindow(Adw.ApplicationWindow):
         vbox.set_halign(Gtk.Align.FILL)
         vbox.set_valign(Gtk.Align.FILL)
 
+        # Zen Mode toggle
+        mode_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        mode_box.set_halign(Gtk.Align.CENTER)
+        
+        mode_lbl = Gtk.Label(label="Zen Mode:")
+        mode_box.append(mode_lbl)
+        
+        self.zen_switch = Gtk.Switch()
+        self.zen_switch.set_valign(Gtk.Align.CENTER)
+        self.zen_switch.connect("state-set", self.on_zen_mode_toggled)
+        mode_box.append(self.zen_switch)
+        
+        self.accumulate_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self.accumulate_box.set_margin_start(24)
+        accumulate_lbl = Gtk.Label(label="Show Accumulated Time:")
+        self.accumulate_box.append(accumulate_lbl)
+        self.accumulate_switch = Gtk.Switch()
+        self.accumulate_switch.set_valign(Gtk.Align.CENTER)
+        self.accumulate_switch.connect("state-set", self.on_accumulate_toggled)
+        self.accumulate_box.append(self.accumulate_switch)
+        self.accumulate_box.set_visible(False)
+        mode_box.append(self.accumulate_box)
+        
+        vbox.append(mode_box)
+
         # Flexible Session selector
-        preset_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        preset_box.set_halign(Gtk.Align.CENTER)
+        self.preset_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self.preset_box.set_halign(Gtk.Align.CENTER)
         
         preset_lbl = Gtk.Label(label="Total Work Time (min):")
-        preset_box.append(preset_lbl)
+        self.preset_box.append(preset_lbl)
         
         adj = Gtk.Adjustment(value=120.0, lower=1.0, upper=1440.0, step_increment=5.0, page_increment=30.0, page_size=0.0)
         self.preset_spin = Gtk.SpinButton(adjustment=adj, numeric=True)
         self.preset_spin.connect("activate", self.on_apply_clicked)
-        preset_box.append(self.preset_spin)
+        self.preset_box.append(self.preset_spin)
         
         apply_btn = Gtk.Button(label="Apply")
         apply_btn.add_css_class("suggested-action")
         apply_btn.connect("clicked", self.on_apply_clicked)
-        preset_box.append(apply_btn)
+        self.preset_box.append(apply_btn)
         
-        vbox.append(preset_box)
+        vbox.append(self.preset_box)
         
         # Status Label
         self.status_label = Gtk.Label(label="Ready to Work")
@@ -145,6 +176,14 @@ class PomodoroWindow(Adw.ApplicationWindow):
         self.pause_btn.add_css_class("pill")
         self.pause_btn.connect("clicked", self.on_pause_clicked)
         button_box.append(self.pause_btn)
+
+        self.stop_btn = Gtk.Button(label="Stop")
+        self.stop_btn.set_sensitive(False)
+        self.stop_btn.set_visible(False)
+        self.stop_btn.add_css_class("destructive-action")
+        self.stop_btn.add_css_class("pill")
+        self.stop_btn.connect("clicked", self.on_stop_clicked)
+        button_box.append(self.stop_btn)
         
         self.reset_btn = Gtk.Button(label="Reset")
         self.reset_btn.add_css_class("destructive-action")
@@ -403,6 +442,10 @@ class PomodoroWindow(Adw.ApplicationWindow):
     def format_time(self, seconds):
         m = seconds // 60
         s = seconds % 60
+        if m >= 60:
+            h = m // 60
+            m = m % 60
+            return f"{h:02d}:{m:02d}:{s:02d}"
         return f"{m:02d}:{s:02d}"
 
     def on_start_clicked(self, btn):
@@ -410,6 +453,13 @@ class PomodoroWindow(Adw.ApplicationWindow):
             self.timer_id = GLib.timeout_add(1000, self.on_timer_tick)
             self.start_btn.set_sensitive(False)
             self.pause_btn.set_sensitive(True)
+            if self.is_zen_mode:
+                self.stop_btn.set_sensitive(True)
+                if self.zen_start_time is None:
+                    self.zen_start_time = datetime.now()
+            else:
+                if self.is_working and self.session_start_time is None:
+                    self.session_start_time = datetime.now()
 
     def on_pause_clicked(self, btn):
         if self.timer_id:
@@ -417,6 +467,72 @@ class PomodoroWindow(Adw.ApplicationWindow):
             self.timer_id = None
             self.start_btn.set_sensitive(True)
             self.pause_btn.set_sensitive(False)
+
+    def on_zen_mode_toggled(self, switch, state):
+        self.is_zen_mode = state
+        self.preset_box.set_visible(not state)
+        self.stop_btn.set_visible(state)
+        self.reset_btn.set_visible(not state)
+        self.accumulate_box.set_visible(state)
+        
+        if self.timer_id:
+            GLib.source_remove(self.timer_id)
+            self.timer_id = None
+            
+        if not state:
+            duration_mins = self.zen_time_elapsed // 60
+            if duration_mins > 0:
+                start_time = self.zen_start_time or (datetime.now() - timedelta(seconds=self.zen_time_elapsed))
+                database.add_session(duration_mins, start_time)
+                self.send_notification("Zen Mode Finished", f"Great job! You studied for {duration_mins} minutes.")
+            self.zen_time_elapsed = 0
+            self.zen_start_time = None
+        
+        if state:
+            self.status_label.set_label("Zen Mode")
+            self.zen_time_elapsed = 0
+            self.zen_start_time = None
+            self.zen_accumulated_seconds = database.get_today_total() * 60
+            self.update_zen_time_display()
+            self.start_btn.set_sensitive(True)
+            self.pause_btn.set_sensitive(False)
+            self.stop_btn.set_sensitive(False)
+        else:
+            self.on_apply_clicked(None)
+            
+        return False
+
+    def on_accumulate_toggled(self, switch, state):
+        self.is_accumulate_mode = state
+        self.update_zen_time_display()
+        return False
+
+    def update_zen_time_display(self):
+        if not self.is_zen_mode:
+            return
+        display_seconds = self.zen_time_elapsed
+        if self.is_accumulate_mode:
+            display_seconds += self.zen_accumulated_seconds
+        self.time_label.set_label(self.format_time(display_seconds))
+
+    def on_stop_clicked(self, btn):
+        if self.timer_id:
+            GLib.source_remove(self.timer_id)
+            self.timer_id = None
+            
+        duration_mins = self.zen_time_elapsed // 60
+        if duration_mins > 0:
+            start_time = self.zen_start_time or (datetime.now() - timedelta(seconds=self.zen_time_elapsed))
+            database.add_session(duration_mins, start_time)
+            self.send_notification("Zen Mode Finished", f"Great job! You studied for {duration_mins} minutes.")
+            
+        self.zen_time_elapsed = 0
+        self.zen_start_time = None
+        self.zen_accumulated_seconds = database.get_today_total() * 60
+        self.update_zen_time_display()
+        self.start_btn.set_sensitive(True)
+        self.pause_btn.set_sensitive(False)
+        self.stop_btn.set_sensitive(False)
 
     def on_apply_clicked(self, btn):
         total_work_mins = int(self.preset_spin.get_value())
@@ -428,6 +544,7 @@ class PomodoroWindow(Adw.ApplicationWindow):
             self.timer_id = None
             
         self.session_queue = []
+        self.session_start_time = None
         break_chunk = 5
         
         if total_work_mins < 30:
@@ -469,8 +586,13 @@ class PomodoroWindow(Adw.ApplicationWindow):
         if self.is_working:
             self.current_block += 1
             self.status_label.set_label(f"Working: Block {self.current_block} of {self.total_blocks} ({duration//60}m)")
+            if self.timer_id:
+                self.session_start_time = datetime.now()
+            else:
+                self.session_start_time = None
         else:
             self.status_label.set_label(f"Break Time! ({duration//60}m)")
+            self.session_start_time = None
             
         self.time_label.set_label(self.format_time(self.time_left))
         
@@ -483,6 +605,11 @@ class PomodoroWindow(Adw.ApplicationWindow):
         self.on_apply_clicked(None)
 
     def on_timer_tick(self):
+        if self.is_zen_mode:
+            self.zen_time_elapsed += 1
+            self.update_zen_time_display()
+            return True
+
         self.time_left -= 1
         self.time_label.set_label(self.format_time(self.time_left))
         
@@ -494,8 +621,10 @@ class PomodoroWindow(Adw.ApplicationWindow):
 
             if self.is_working:
                 duration_mins = self.current_chunk_duration // 60
-                database.add_session(duration_mins)
+                start_time = self.session_start_time or (datetime.now() - timedelta(seconds=self.current_chunk_duration))
+                database.add_session(duration_mins, start_time)
                 self.send_notification("Pomodoro Finished", f"Great job! You studied for {duration_mins} minutes.")
+                self.session_start_time = None
             else:
                 self.send_notification("Break Finished", "Time to get back to work!")
                 

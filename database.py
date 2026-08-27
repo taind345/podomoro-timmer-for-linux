@@ -18,11 +18,16 @@ def init_db():
     conn.commit()
     conn.close()
 
-def add_session(duration_minutes):
+def add_session(duration_minutes, start_time=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute('INSERT INTO sessions (timestamp, duration) VALUES (?, ?)', (now_str, duration_minutes))
+    if start_time is None:
+        start_time = datetime.now()
+    if isinstance(start_time, datetime):
+        time_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        time_str = str(start_time)
+    cursor.execute('INSERT INTO sessions (timestamp, duration) VALUES (?, ?)', (time_str, duration_minutes))
     conn.commit()
     conn.close()
 
