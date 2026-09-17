@@ -1,8 +1,14 @@
 import unittest
+import sys
 import os
 import tempfile
 import sqlite3
 from datetime import datetime, timedelta
+
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.join(os.path.dirname(TEST_DIR), "src")
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
 import database
 import core_timer
@@ -15,13 +21,13 @@ try:
     gi.require_version('Adw', '1')
     gi.require_version('PangoCairo', '1.0')
     from gi.repository import Gtk, Adw, GLib
-    import ui_gtk
+    from ui import ui_gtk
     HAS_GI = True
 except Exception:
     HAS_GI = False
 
 try:
-    import ui_win
+    from ui import ui_win
     HAS_WIN_UI = True
 except Exception:
     HAS_WIN_UI = False

@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
-APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DESKTOP_FILE="$HOME/.local/share/applications/pomodoro-tracker.desktop"
 
 mkdir -p "$HOME/.local/share/applications"

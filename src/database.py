@@ -4,7 +4,8 @@ import os
 import shutil
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DATA_DIR = os.path.join(BASE_DIR, "data")
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+DEFAULT_DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 DEFAULT_DB_PATH = os.path.join(DEFAULT_DATA_DIR, "podomoro_stats.db")
 LEGACY_LINUX_DB_PATH = os.path.expanduser("~/.local/share/podomoro_stats.db")
 

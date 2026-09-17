@@ -3,10 +3,11 @@ import sys
 import subprocess
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+ASSETS_DIR = os.path.join(PROJECT_ROOT, "assets")
 CHIME_PATH = os.path.join(ASSETS_DIR, "chime.wav")
 TOAST_SCRIPT = os.path.join(ASSETS_DIR, "toast.ps1")
-ICON_PATH = os.path.join(BASE_DIR, "icon.png")
+ICON_PATH = os.path.join(PROJECT_ROOT, "icon.png")
 
 def is_windows():
     return sys.platform.startswith("win")

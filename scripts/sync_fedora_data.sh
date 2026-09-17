@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
-APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SHARED_DB="$APP_DIR/data/podomoro_stats.db"
 FEDORA_LEGACY_DB="$HOME/.local/share/podomoro_stats.db"
 
@@ -13,7 +14,7 @@ echo "Fedora Local DB: $FEDORA_LEGACY_DB"
 
 if [ -f "$FEDORA_LEGACY_DB" ] && [ ! -L "$FEDORA_LEGACY_DB" ]; then
     echo "Found Fedora local database. Merging into shared database..."
-    python3 "$APP_DIR/sync_database.py" "$FEDORA_LEGACY_DB"
+    python3 "$APP_DIR/src/sync_database.py" "$FEDORA_LEGACY_DB"
     
     # Backup legacy file
     mv "$FEDORA_LEGACY_DB" "$FEDORA_LEGACY_DB.backup_$(date +%Y%m%d%H%M%S)"
@@ -29,5 +30,5 @@ else
 fi
 
 echo "Running status check..."
-python3 "$APP_DIR/sync_database.py"
+python3 "$APP_DIR/src/sync_database.py"
 echo "=== Sync Complete! ==="

@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 # Automatic 1-time legacy data sync from Fedora local folder if needed
 if [ -f "$HOME/.local/share/podomoro_stats.db" ] && [ ! -L "$HOME/.local/share/podomoro_stats.db" ]; then
-    python3 sync_database.py "$HOME/.local/share/podomoro_stats.db" 2>/dev/null || true
+    python3 src/sync_database.py "$HOME/.local/share/podomoro_stats.db" 2>/dev/null || true
     ln -sf "$(pwd)/data/podomoro_stats.db" "$HOME/.local/share/podomoro_stats.db" 2>/dev/null || true
 fi
 

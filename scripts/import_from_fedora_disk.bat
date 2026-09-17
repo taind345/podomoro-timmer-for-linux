@@ -18,10 +18,10 @@ if %errorlevel% neq 0 (
 echo [2/3] Searching for Fedora podomoro database...
 wsl -d Ubuntu -u root -e bash -c "DB=\$(find /mnt/wsl/ -name 'podomoro_stats.db' 2>/dev/null | head -n 1); if [ -n \"\$DB\" ]; then cp \"\$DB\" /mnt/d/DESKTOP/DATA_DESKTOP/0-CODE/podomoro_linux/data/fedora_imported.db; echo \"[Found] Copied from \$DB\"; else echo \"[Not Found] Did not find in /mnt/wsl/\"; fi"
 
-if exist "data\fedora_imported.db" (
+if exist "%~dp0..\data\fedora_imported.db" (
     echo [3/3] Merging sessions into shared database...
-    python sync_database.py "data\fedora_imported.db"
-    del "data\fedora_imported.db" 2>nul
+    python "%~dp0..\src\sync_database.py" "%~dp0..\data\fedora_imported.db"
+    del "%~dp0..\data\fedora_imported.db" 2>nul
     echo.
     echo =======================================================
     echo [SUCCESS] All Fedora data has been synced to Windows!
