@@ -4,7 +4,11 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
-test_*.py
+data/*.db
+data/*.db-wal
+data/*.db-shm
+!data/.gitkeep
 test_scale.py
 test_app.py
+!test_suite.py
 .DS_Store
