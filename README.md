@@ -9,6 +9,11 @@
   - Tự động di chuyển (auto-migrate) dữ liệu cũ từ Fedora (`~/.local/share/podomoro_stats.db`) sang database dùng chung ngay trong lần chạy đầu tiên.
 
 ---
+<img width="1181" height="1273" alt="image" src="https://github.com/user-attachments/assets/9bc00f0c-7a04-49cb-aad2-9933035417c4" />
+<img width="1181" height="1273" alt="image" src="https://github.com/user-attachments/assets/2aeb984a-b372-4cf3-a123-65e617dc7614" />
+<img width="1181" height="1273" alt="image" src="https://github.com/user-attachments/assets/90aa1604-efaa-40d2-82f0-2271733c1492" />
+<img width="1181" height="1273" alt="image" src="https://github.com/user-attachments/assets/af2ce94a-9795-43cf-ac23-db01653ad189" />
+<img width="1181" height="1273" alt="image" src="https://github.com/user-attachments/assets/d511a6a8-7ed9-4bc2-bf6a-b47e2f30f714" />
 
 ## Sơ đồ Tổng thể Hệ thống (System Architecture)
 
